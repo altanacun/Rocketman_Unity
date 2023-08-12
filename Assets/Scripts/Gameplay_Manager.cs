@@ -11,33 +11,32 @@ public class Gameplay_Manager : MonoBehaviour
     [SerializeField] Animator rocketman_Animator;
     [SerializeField] Animator stick_Animator;
     [SerializeField] Text fpsUIText;
+    [SerializeField] GameObject SmokeLeft,SmokeRight;
     private float deltaTime;
+
+    Rigidbody playerRigidbody;
+
     //THROW PHASE CONTROLS
-    private float startPosX;
-    private float direction;
-    private bool throwPhase = true;
-    private float mousePosX;
+    private float throwStartPosX;
+    private bool throwPhaseBool = true;
+    private float throwMousePosX;
     private float thrust;
     //FLY PHASE CONTROLS
-    private bool flyPhase = false;
-
-
-    //CAMERA LOCATIONS
-    private Vector3 camPos_Start;
-    private Vector3 camRot_Start;
-
+    private bool flyPhaseBool = false;
+    private bool wingsOpen = false;
+    private float flyStartPosX;
+    private float flyMousePosX;
 
     private void Awake()
     {
         Application.targetFrameRate = 60; // LIMIT 60 FPS
     }
-
-    void Start()
+    private void Start()
     {
-        camPos_Start = new Vector3(17.5f, 20, -14);
-        camRot_Start = new Vector3(15, -50, 0);
+        playerRigidbody = rocketman_Transform.gameObject.GetComponent<Rigidbody>();
+        SmokeLeft.SetActive(false);
+        SmokeRight.SetActive(false);
     }
-
     void Update()
     {
         // COUNT & DISPLAY FPS
@@ -46,22 +45,22 @@ public class Gameplay_Manager : MonoBehaviour
         fpsUIText.text = Mathf.Ceil(FPS).ToString();
 
         // FIRST SECTION --- THROW PHASE
-        if (throwPhase){
+        if (throwPhaseBool){
             if (Input.GetMouseButton(0))
             {
                 stick_Animator.SetBool("bend_Stick", true);
 
-                if (mousePosX > 0)
+                if (throwMousePosX > 0)
                 {
-                    thrust = (mousePosX - startPosX) / -1000;
+                    thrust = (throwMousePosX - throwStartPosX) / -1000;
                     stick_Animator.SetFloat("bend_Stick_Time", thrust); // -1000 cause of screen pixel values
                 }
-                mousePosX = Input.mousePosition.x;
+                throwMousePosX = Input.mousePosition.x;
 
             }
             if (Input.GetMouseButtonDown(0))
             {
-                startPosX = mousePosX;
+                throwStartPosX = throwMousePosX;
             }
 
             if (Input.GetMouseButtonUp(0))
@@ -78,11 +77,64 @@ public class Gameplay_Manager : MonoBehaviour
         }
 
         // SECOND SECTION --- FLY PHASE
-        if (flyPhase)
+        if (flyPhaseBool)
         {
-            rocketman_Transform.GetChild(0).transform.Rotate(Vector3.right * Time.deltaTime * 1000f);
+            // SET CAMERA
+            Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, rocketman_Transform.position + new Vector3(0, 5, -20), 0.05f);
+            Camera.main.transform.LookAt(rocketman_Transform);
+
+            // ROTATE ROCKETMAN
+            if (!wingsOpen)
+                rocketman_Transform.Rotate(Vector3.right * Time.deltaTime * 1000f);
+            else if (wingsOpen)
+                rocketman_Transform.rotation = Quaternion.Lerp(rocketman_Transform.rotation, Quaternion.Euler(45,0,0), .05f);
+
+            if (Input.GetMouseButtonDown(0))
+            {
+                // WINGS & SMOKE
+                wingsOpen = true;
+                rocketman_Animator.SetBool("wingsActive",true);
+                playerRigidbody.mass = .01f;
+                playerRigidbody.drag = 1f;
+                SmokeRight.SetActive(true);
+                SmokeLeft.SetActive(true);
+                // MOVEMENT
+                flyStartPosX = Input.mousePosition.x;
+
+
+            }
+            if (Input.GetMouseButton(0))
+            {
+                flyMousePosX = Input.mousePosition.x;
+
+                if (flyStartPosX - flyMousePosX > 300) 
+                {
+                    if (flyStartPosX > flyMousePosX) // MOVE LEFT
+                    {
+                        //playerRigidbody.AddForce(Vector3.left * 30 * Input.GetAxis("Horizontal") * Time.deltaTime);
+                        rocketman_Transform.rotation = Quaternion.Lerp(rocketman_Transform.rotation, Quaternion.Euler(45, 50, 50), .05f);
+                    }
+                }
+                if (flyStartPosX - flyMousePosX < 300)
+                {
+                    if (flyStartPosX < flyMousePosX) // MOVE RIGHT
+                    {
+                        //playerRigidbody.AddForce(Vector3.right * 30 * Input.GetAxis("Horizontal") * Time.deltaTime);
+                        rocketman_Transform.rotation = Quaternion.Lerp(rocketman_Transform.rotation, Quaternion.Euler(45, -50, -50), .05f);
+                    }
+                }
+            }
+            if (Input.GetMouseButtonUp(0))
+            {
+                // WINGS & SMOKE
+                wingsOpen = false;
+                playerRigidbody.mass = 1f;
+                playerRigidbody.drag = -1f;
+                rocketman_Animator.SetBool("wingsActive", false);
+                SmokeRight.SetActive(false);
+                SmokeLeft.SetActive(false);
+            }
         }
-        
     }
 
     public void ThrowPhase()
@@ -90,43 +142,29 @@ public class Gameplay_Manager : MonoBehaviour
         // Play throw animation
         stick_Animator.SetBool("release_Stick", true);
         stick_Animator.SetBool("bend_Stick", false);
-        // SET CAMERA
-   
-        Transform GameCam = Camera.main.transform;
-        GameCam.SetParent(null); // unparent
-        GameCam.SetParent(rocketman_Transform);
-        GameCam.transform.position = Vector3.zero;  // reset
-        GameCam.transform.rotation = Quaternion.Euler(0, 0, 0); // reset
-        Vector3 flyCamPos = new Vector3(0, 25, 0);
-        Quaternion flyCamRot = Quaternion.Euler(1.08f, 0, 0);
-        GameCam.position = flyCamPos;//Vector3.MoveTowards(GameCam.position, flyCamPos, Time.deltaTime * 300f);
-        //GameCam.rotation = Quaternion.Slerp(GameCam.rotation, flyCamRot, Time.deltaTime * 300f);
         // UNPARENT PLAYER FROM STICK
         rocketman_Transform.SetParent(null);
         // RIGIDBODY SETTINGS
-        Rigidbody rb = rocketman_Transform.gameObject.GetComponent<Rigidbody>();
-        rb.isKinematic = false;
-        rb.useGravity = true;
+        playerRigidbody.isKinematic = false;
+        playerRigidbody.useGravity = true;
         // !!! FLY !!!
-        rb.AddForce(transform.up * thrust * 3000f);
-        rb.AddForce(transform.forward * thrust * 3000f);
-        throwPhase = false;
-        flyPhase = true;
+        playerRigidbody.AddForce(transform.up * thrust * 3000f);
+        playerRigidbody.AddForce(transform.forward * thrust * 3000f);
+        throwPhaseBool = false;
+        flyPhaseBool = true;
         FlyPhaseOperations();
     }
 
     public void FlyPhaseOperations()
-    {
-
-
+    {   
     }
 
     public void Restart()
     {
-        throwPhase = true;
+        throwPhaseBool = true;
         // camera pos = new Vector3();
         // caemra rot = new vector3();
         stick_Animator.SetBool("bendStick", false);
         stick_Animator.SetBool("releaseStick", false);
     }
-}
+} 
