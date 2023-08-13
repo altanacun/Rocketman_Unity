@@ -10,14 +10,14 @@ public class Obstacle_Controller : MonoBehaviour
         }
         else if (transform.tag == "Cylinder_Bounce")
         {
-            collision.transform.GetComponent<Rigidbody>().AddForce(transform.up * 15f);
-            collision.transform.GetComponent<Rigidbody>().AddForce(transform.forward * 5f);
+            collision.transform.GetComponent<Rigidbody>().AddForce(transform.up * 2000f);
+            collision.transform.GetComponent<Rigidbody>().AddForce(transform.forward * 10f);
 
         }
         else if (transform.tag == "Cube_Bounce")
         {
-            collision.transform.GetComponent<Rigidbody>().AddForce(transform.up * 10f);
-            collision.transform.GetComponent<Rigidbody>().AddForce(transform.forward * 2.5f);
+            collision.transform.GetComponent<Rigidbody>().AddForce(transform.up * 1000f);
+            collision.transform.GetComponent<Rigidbody>().AddForce(transform.forward * 5f);
 
         }
     }

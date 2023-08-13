@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using System;
-
+using Cinemachine;
 public class Gameplay_Manager : MonoBehaviour
 {
     [SerializeField] Transform rocketman_Transform;
@@ -13,7 +13,9 @@ public class Gameplay_Manager : MonoBehaviour
     [SerializeField] GameObject SmokeLeft,SmokeRight;
     [SerializeField] Transform RocketMan_Stick_Start_Transform;
     private float deltaTime;
-    private Transform mainCam;
+
+    [SerializeField] CinemachineFreeLook throwCam;
+    [SerializeField] CinemachineFreeLook flyCam;
 
     // GAMEOVER UI
     [SerializeField] GameObject GameOverUI;
@@ -42,17 +44,21 @@ public class Gameplay_Manager : MonoBehaviour
         playerRigidbody = rocketman_Transform.gameObject.GetComponent<Rigidbody>();
         SmokeLeft.SetActive(false);
         SmokeRight.SetActive(false);
-        mainCam = Camera.main.transform;
+        flyCam.LookAt = rocketman_Transform;
+        flyCam.Follow = rocketman_Transform;
+        setCams();
     }
     void Update()
     {
+        playerRigidbody.velocity = Vector3.ClampMagnitude(playerRigidbody.velocity, 150);
         // COUNT & DISPLAY FPS
         deltaTime += (Time.deltaTime - deltaTime) * .1f;
         float FPS = 1f / deltaTime;
         fpsUIText.text = Mathf.Ceil(FPS).ToString();
 
         // FIRST SECTION --- THROW PHASE
-        if (throwPhaseBool && !gameOverBool){
+        if (throwPhaseBool && !gameOverBool)
+        {
             if (Input.GetMouseButton(0))
             {
                 stick_Animator.SetBool("bend_Stick", true);
@@ -78,7 +84,7 @@ public class Gameplay_Manager : MonoBehaviour
                 }
                 else
                 {
-                    stick_Animator.SetFloat("bend_Stick_Time",0); // RETURN TO START POS
+                    stick_Animator.SetFloat("bend_Stick_Time", 0); // RETURN TO START POS
                 }
             }
         }
@@ -86,10 +92,6 @@ public class Gameplay_Manager : MonoBehaviour
         // SECOND SECTION --- FLY PHASE
         if (flyPhaseBool && !gameOverBool)
         {
-            // SET CAMERA
-            mainCam.position = Vector3.Lerp(mainCam.position, rocketman_Transform.position + new Vector3(0, 5, -20), 0.05f);
-            mainCam.LookAt(rocketman_Transform);
-
             // ROTATE ROCKETMAN
             if (!wingsOpen)
                 rocketman_Transform.Rotate(Vector3.right * Time.deltaTime * 1000f);
@@ -101,48 +103,47 @@ public class Gameplay_Manager : MonoBehaviour
                 // WINGS & SMOKE
                 wingsOpen = true;
                 rocketman_Animator.SetBool("wingsActive", true);
-                playerRigidbody.mass = .01f;
-                playerRigidbody.drag = .2f;
+                playerRigidbody.velocity = playerRigidbody.velocity - new Vector3(0,0,15); // slowdown
                 SmokeRight.SetActive(true);
                 SmokeLeft.SetActive(true);
+                rocketman_Transform.rotation = Quaternion.Lerp(rocketman_Transform.rotation, Quaternion.Euler(45, 0, 0), .05f);
                 // MOVEMENT
                 flyStartPosX = Input.mousePosition.x;
 
             }
-                // LEFT & RIGHT MOVEMENT
-                if (Input.GetMouseButton(0))
-                {
-                    flyMousePosX = Input.mousePosition.x;
+            // LEFT & RIGHT MOVEMENT
+            if (Input.GetMouseButton(0))
+            {
+                flyMousePosX = Input.mousePosition.x;
 
-                    if (flyStartPosX - flyMousePosX > 300)
+                if (flyStartPosX - flyMousePosX > 300)
+                {
+                    if (flyStartPosX > flyMousePosX) // MOVE LEFT
                     {
-                        if (flyStartPosX > flyMousePosX) // MOVE LEFT
-                        {
-                            rocketman_Transform.position = Vector3.Lerp(rocketman_Transform.position, rocketman_Transform.position + new Vector3(-10f, 0, 0), .02f);
-                            rocketman_Transform.rotation = Quaternion.Lerp(rocketman_Transform.rotation, Quaternion.Euler(45, 50, 50), .05f);
-                        }
-                    }
-                    if (flyStartPosX - flyMousePosX < 300)
-                    {
-                        if (flyStartPosX < flyMousePosX) // MOVE RIGHT
-                        {
-                            rocketman_Transform.position = Vector3.Lerp(rocketman_Transform.position, rocketman_Transform.position + new Vector3(10f, 0, 0), .02f);
-                            rocketman_Transform.rotation = Quaternion.Lerp(rocketman_Transform.rotation, Quaternion.Euler(45, -50, -50), .05f);
-                        }
+                        rocketman_Transform.position = Vector3.Lerp(rocketman_Transform.position, rocketman_Transform.position + new Vector3(-10f, 0, 0), .02f);
+                        rocketman_Transform.rotation = Quaternion.Lerp(rocketman_Transform.rotation, Quaternion.Euler(45, 50, 50), .05f);
                     }
                 }
-                if (Input.GetMouseButtonUp(0))
+                if (flyStartPosX - flyMousePosX < 300)
                 {
-                    // WINGS & SMOKE
-                    wingsOpen = false;
-                    playerRigidbody.mass = 1f;
-                    playerRigidbody.drag = .1f;
-                    rocketman_Animator.SetBool("wingsActive", false);
-                    SmokeRight.SetActive(false);
-                    SmokeLeft.SetActive(false);
+                    if (flyStartPosX < flyMousePosX) // MOVE RIGHT
+                    {
+                        rocketman_Transform.position = Vector3.Lerp(rocketman_Transform.position, rocketman_Transform.position + new Vector3(10f, 0, 0), .02f);
+                        rocketman_Transform.rotation = Quaternion.Lerp(rocketman_Transform.rotation, Quaternion.Euler(45, -50, -50), .05f);
+                    }
                 }
             }
-     }
+            if (Input.GetMouseButtonUp(0))
+            {
+                // WINGS & SMOKE
+                wingsOpen = false;
+                playerRigidbody.velocity = playerRigidbody.velocity + new Vector3(0, 0, 15); // restore speed
+                rocketman_Animator.SetBool("wingsActive", false);
+                SmokeRight.SetActive(false);
+                SmokeLeft.SetActive(false);
+            }
+        }
+    }
 
     public void ThrowPhase()
     {
@@ -154,6 +155,9 @@ public class Gameplay_Manager : MonoBehaviour
         // RIGIDBODY SETTINGS
         playerRigidbody.isKinematic = false;
         playerRigidbody.useGravity = true;
+        // SET CAMERAS
+        flyCam.enabled = true;
+        throwCam.enabled = false;
         // !!! FLY !!!
         playerRigidbody.mass = 1f;
         playerRigidbody.drag = .1f;
@@ -192,8 +196,6 @@ public class Gameplay_Manager : MonoBehaviour
         rocketman_Transform.position = Vector3.zero;
         rocketman_Transform.position = new Vector3(0,16,0); // reset to start pos
         rocketman_Transform.rotation = Quaternion.identity; // startRot
-        mainCam.position = new Vector3(17.5f,20,-14); // startPos
-        mainCam.rotation = Quaternion.Euler(15,-50,0); // startRot
         playerRigidbody.useGravity = false;
         playerRigidbody.isKinematic = true;
         rocketman_Transform.GetComponent<SphereCollider>().enabled = false;
@@ -201,5 +203,11 @@ public class Gameplay_Manager : MonoBehaviour
         throwPhaseBool = true;
         gameOverBool = false;
         Time.timeScale = 1; // pause game
+        setCams();
+    }
+    private void setCams()
+    {
+        flyCam.enabled = false;
+        throwCam.enabled = true;
     }
 } 
