@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 3629786151272627454}
   m_Layer: 0
   m_Name: Top
-  m_TagString: Cylinder_Bounce
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -140,7 +140,7 @@ Transform:
   m_GameObject: {fileID: 3868026245339860980}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 3.69, y: 7.02, z: 69.1}
-  m_LocalScale: {x: 7, y: 7, z: 7}
+  m_LocalScale: {x: 15, y: 15, z: 15}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3868026245162118172}

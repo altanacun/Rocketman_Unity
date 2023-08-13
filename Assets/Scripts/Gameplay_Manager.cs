@@ -1,38 +1,35 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using System;
 using Cinemachine;
 public class Gameplay_Manager : MonoBehaviour
 {
+    // INSPECTOR ITEMS
     [SerializeField] Transform rocketman_Transform;
     [SerializeField] Animator rocketman_Animator;
     [SerializeField] Animator stick_Animator;
     [SerializeField] Text fpsUIText;
     [SerializeField] GameObject SmokeLeft,SmokeRight;
     [SerializeField] Transform RocketMan_Stick_Start_Transform;
-    private float deltaTime;
-
+    // CAMERAS
     [SerializeField] CinemachineFreeLook throwCam;
     [SerializeField] CinemachineFreeLook flyCam;
-
     // GAMEOVER UI
     [SerializeField] GameObject GameOverUI;
-    Rigidbody playerRigidbody;
-
-    //THROW PHASE CONTROLS
+    // THROW PHASE CONTROLS
     private float throwStartPosX;
     private bool throwPhaseBool = true;
     private float throwMousePosX;
     private float thrust;
-    //FLY PHASE CONTROLS
+    // FLY PHASE CONTROLS
     private bool flyPhaseBool = false;
     private bool wingsOpen = false;
     private float flyStartPosX;
     private float flyMousePosX;
-    //GAME OVER
+    // GAME OVER
     private bool gameOverBool;
+    // OTHERS
+    private float deltaTime;
+    Rigidbody playerRigidbody;
 
     private void Awake()
     {
@@ -50,13 +47,14 @@ public class Gameplay_Manager : MonoBehaviour
     }
     void Update()
     {
-        playerRigidbody.velocity = Vector3.ClampMagnitude(playerRigidbody.velocity, 150);
+        playerRigidbody.velocity = Vector3.ClampMagnitude(playerRigidbody.velocity, 150); // LIMIT PLAYER'S SPEED
+
         // COUNT & DISPLAY FPS
         deltaTime += (Time.deltaTime - deltaTime) * .1f;
         float FPS = 1f / deltaTime;
         fpsUIText.text = Mathf.Ceil(FPS).ToString();
 
-        // FIRST SECTION --- THROW PHASE
+        // FIRST SECTION --- THROW PHASE ( BENDING STICK )
         if (throwPhaseBool && !gameOverBool)
         {
             if (Input.GetMouseButton(0))
@@ -100,13 +98,14 @@ public class Gameplay_Manager : MonoBehaviour
 
             if (Input.GetMouseButtonDown(0))
             {
-                // WINGS & SMOKE
+                // WINGS & SMOKES
                 wingsOpen = true;
                 rocketman_Animator.SetBool("wingsActive", true);
-                playerRigidbody.velocity = playerRigidbody.velocity - new Vector3(0,0,15); // slowdown
+                playerRigidbody.velocity = playerRigidbody.velocity - new Vector3(0,0,10); // slowdown
                 SmokeRight.SetActive(true);
                 SmokeLeft.SetActive(true);
                 rocketman_Transform.rotation = Quaternion.Lerp(rocketman_Transform.rotation, Quaternion.Euler(45, 0, 0), .05f);
+                   
                 // MOVEMENT
                 flyStartPosX = Input.mousePosition.x;
 
@@ -135,9 +134,9 @@ public class Gameplay_Manager : MonoBehaviour
             }
             if (Input.GetMouseButtonUp(0))
             {
-                // WINGS & SMOKE
+                // WINGS & SMOKES
                 wingsOpen = false;
-                playerRigidbody.velocity = playerRigidbody.velocity + new Vector3(0, 0, 15); // restore speed
+                playerRigidbody.velocity = playerRigidbody.velocity + new Vector3(0, 0, 10); // restore speed
                 rocketman_Animator.SetBool("wingsActive", false);
                 SmokeRight.SetActive(false);
                 SmokeLeft.SetActive(false);
@@ -204,6 +203,7 @@ public class Gameplay_Manager : MonoBehaviour
         gameOverBool = false;
         Time.timeScale = 1; // pause game
         setCams();
+        throwMousePosX = 0; // avoids flickering while bending stick
     }
     private void setCams()
     {
